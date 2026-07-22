@@ -1,0 +1,10 @@
+{
+  "id": "curl-sell-es-001",
+  "source": "curl",
+  "symbol": "ES1!",
+  "action": "SELL",
+  "orderType": "MARKET",
+  "quantity": 1,
+  "account": "Sim101",
+  "comment": "Sample SELL ES"
+}

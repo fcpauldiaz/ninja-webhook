@@ -1,0 +1,10 @@
+{
+  "id": "curl-flatten-es-001",
+  "source": "curl",
+  "symbol": "ES1!",
+  "action": "FLATTEN",
+  "orderType": "MARKET",
+  "quantity": 1,
+  "account": "Sim101",
+  "comment": "Sample FLATTEN ES"
+}

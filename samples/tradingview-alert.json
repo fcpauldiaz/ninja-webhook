@@ -1,0 +1,11 @@
+{
+  "id": "{{strategy.order.id}}-{{time}}",
+  "source": "TradingView",
+  "symbol": "{{ticker}}",
+  "action": "BUY",
+  "orderType": "MARKET",
+  "quantity": 1,
+  "account": "Sim101",
+  "timeInForce": "DAY",
+  "comment": "TradingView alert"
+}

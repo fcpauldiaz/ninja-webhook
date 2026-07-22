@@ -1,0 +1,29 @@
+bin/
+obj/
+logs/
+tools/
+.vs/
+*.user
+appsettings.*.local.json
+publish/
+
+# Python
+webhook_receiver/.venv/
+webhook_receiver/__pycache__/
+**/__pycache__/
+*.pyc
+webhook_receiver/build/
+webhook_receiver/dist/
+*.spec.bak
+
+# Local secrets / machine config (ship defaults only)
+webhook_receiver/config.json
+**/config.local.json
+
+# NinjaTrader compile scratch
+logs/nt-compile-out/
+logs/nt-compile-check/
+*.dll
+*.pdb
+*.exe
+!scripts/**
