@@ -2,7 +2,7 @@
 ; Built by scripts\pack-release.ps1 — do not run against missing release files.
 
 #define MyAppName "NinjaWebhook"
-#define MyAppVersion "1.2.4"
+#define MyAppVersion "1.2.5"
 #define MyAppPublisher "NinjaWebhook"
 #define MyAppExeName "WebhookReceiver.exe"
 #define MyAddOnZip "WebhookTradeListener-AddOn.zip"
@@ -58,7 +58,12 @@ Filename: "{app}\{#MyAppExeName}"; Description: "Launch Webhook Receiver"; Flags
 Filename: "{app}"; Description: "Open install folder (import the Add-On zip in NinjaTrader)"; Flags: shellexec postinstall skipifsilent unchecked
 
 [Code]
+const
+  DefaultListenPort = '5088';
+  DefaultNtTcpPort = '7077';
+
 var
+  ListenPage: TInputQueryWizardPage;
   DiscordPage: TInputQueryWizardPage;
   OptionsPage: TInputQueryWizardPage;
 
@@ -173,6 +178,141 @@ begin
   Result := UnescapeJsonString(Raw);
 end;
 
+function ReadRootListenPort(const JsonText: String): String;
+var
+  Marker: String;
+  StartPos, I: Integer;
+  Digits: String;
+begin
+  Result := '';
+  Marker := #10 + '  "port":';
+  StartPos := Pos(Marker, JsonText);
+  if StartPos = 0 then
+    Exit;
+
+  I := StartPos + Length(Marker);
+  while (I <= Length(JsonText)) and (JsonText[I] = ' ') do
+    I := I + 1;
+  if (I <= Length(JsonText)) and (JsonText[I] = '"') then
+    I := I + 1;
+
+  Digits := '';
+  while (I <= Length(JsonText)) and (JsonText[I] >= '0') and (JsonText[I] <= '9') do
+  begin
+    Digits := Digits + JsonText[I];
+    I := I + 1;
+  end;
+  Result := Digits;
+end;
+
+function ReplaceRootListenPort(const JsonText, PortText: String): String;
+var
+  Marker: String;
+  StartPos, ValueStart, ValueEnd: Integer;
+begin
+  Marker := #10 + '  "port":';
+  StartPos := Pos(Marker, JsonText);
+  if StartPos = 0 then
+  begin
+    Result := JsonText;
+    Exit;
+  end;
+
+  ValueStart := StartPos + Length(Marker);
+  while (ValueStart <= Length(JsonText)) and
+        ((JsonText[ValueStart] = ' ') or (JsonText[ValueStart] = '"')) do
+    ValueStart := ValueStart + 1;
+
+  ValueEnd := ValueStart;
+  while (ValueEnd <= Length(JsonText)) and
+        (JsonText[ValueEnd] >= '0') and (JsonText[ValueEnd] <= '9') do
+    ValueEnd := ValueEnd + 1;
+
+  Result :=
+    Copy(JsonText, 1, ValueStart - 1) +
+    PortText +
+    Copy(JsonText, ValueEnd, MaxInt);
+end;
+
+function NormalizedPort(const Value, DefaultPort: String): String;
+var
+  PortNumber: Integer;
+begin
+  Result := Trim(Value);
+  if Result = '' then
+    Result := DefaultPort;
+  PortNumber := StrToIntDef(Result, -1);
+  if (PortNumber < 1) or (PortNumber > 65535) then
+    Result := '';
+end;
+
+function ReadObjectPort(const JsonText, ObjectName: String): String;
+var
+  SectionPos, RelPos, I: Integer;
+  Section: String;
+  Digits: String;
+begin
+  Result := '';
+  SectionPos := Pos('"' + ObjectName + '"', JsonText);
+  if SectionPos = 0 then
+    Exit;
+
+  Section := Copy(JsonText, SectionPos, MaxInt);
+  RelPos := Pos('"port":', Section);
+  if RelPos = 0 then
+    Exit;
+
+  I := SectionPos + RelPos - 1 + Length('"port":');
+  while (I <= Length(JsonText)) and (JsonText[I] = ' ') do
+    I := I + 1;
+  if (I <= Length(JsonText)) and (JsonText[I] = '"') then
+    I := I + 1;
+
+  Digits := '';
+  while (I <= Length(JsonText)) and (JsonText[I] >= '0') and (JsonText[I] <= '9') do
+  begin
+    Digits := Digits + JsonText[I];
+    I := I + 1;
+  end;
+  Result := Digits;
+end;
+
+function ReplaceObjectPort(const JsonText, ObjectName, PortText: String): String;
+var
+  SectionPos, RelPos, ValueStart, ValueEnd: Integer;
+  Section: String;
+begin
+  SectionPos := Pos('"' + ObjectName + '"', JsonText);
+  if SectionPos = 0 then
+  begin
+    Result := JsonText;
+    Exit;
+  end;
+
+  Section := Copy(JsonText, SectionPos, MaxInt);
+  RelPos := Pos('"port":', Section);
+  if RelPos = 0 then
+  begin
+    Result := JsonText;
+    Exit;
+  end;
+
+  ValueStart := SectionPos + RelPos - 1 + Length('"port":');
+  while (ValueStart <= Length(JsonText)) and
+        ((JsonText[ValueStart] = ' ') or (JsonText[ValueStart] = '"')) do
+    ValueStart := ValueStart + 1;
+
+  ValueEnd := ValueStart;
+  while (ValueEnd <= Length(JsonText)) and
+        (JsonText[ValueEnd] >= '0') and (JsonText[ValueEnd] <= '9') do
+    ValueEnd := ValueEnd + 1;
+
+  Result :=
+    Copy(JsonText, 1, ValueStart - 1) +
+    PortText +
+    Copy(JsonText, ValueEnd, MaxInt);
+end;
+
 function ExistingConfigPath: String;
 var
   Candidate: String;
@@ -200,7 +340,7 @@ var
   ConfigPath: String;
   JsonText: AnsiString;
   Text: String;
-  DiscordUrl, OptionsUrl, OptionsKey: String;
+  DiscordUrl, OptionsUrl, OptionsKey, ListenPort, NtTcpPort: String;
 begin
   ConfigPath := ExistingConfigPath;
   if ConfigPath = '' then
@@ -212,6 +352,20 @@ begin
   DiscordUrl := Trim(ReadJsonStringField(Text, 'discord_webhook_url'));
   OptionsUrl := Trim(ReadJsonStringField(Text, 'webhook_url'));
   OptionsKey := Trim(ReadJsonStringField(Text, 'api_key'));
+  ListenPort := Trim(ReadRootListenPort(Text));
+  NtTcpPort := Trim(ReadObjectPort(Text, 'tcp'));
+
+  if (ListenPage <> nil) and
+     ((Trim(ListenPage.Values[0]) = '') or
+      (Trim(ListenPage.Values[0]) = DefaultListenPort)) and
+     (ListenPort <> '') then
+    ListenPage.Values[0] := ListenPort;
+
+  if (ListenPage <> nil) and
+     ((Trim(ListenPage.Values[1]) = '') or
+      (Trim(ListenPage.Values[1]) = DefaultNtTcpPort)) and
+     (NtTcpPort <> '') then
+    ListenPage.Values[1] := NtTcpPort;
 
   if (DiscordPage <> nil) and (Trim(DiscordPage.Values[0]) = '') and (DiscordUrl <> '') then
     DiscordPage.Values[0] := DiscordUrl;
@@ -362,12 +516,12 @@ begin
 end;
 
 procedure WriteReceiverConfig(
-  const DiscordWebhook, OptionsUrl, OptionsApiKey: String
+  const ListenPort, NtTcpPort, DiscordWebhook, OptionsUrl, OptionsApiKey: String
 );
 var
   DefaultsPath, ConfigPath: String;
   JsonText: AnsiString;
-  Updated: String;
+  Updated, PortText: String;
 begin
   ConfigPath := ExpandConstant('{app}\config.json');
   DefaultsPath := ExpandConstant('{tmp}\config.defaults.json');
@@ -388,6 +542,12 @@ begin
     Exit;
 
   Updated := StripBom(String(JsonText));
+  PortText := NormalizedPort(ListenPort, DefaultListenPort);
+  if PortText <> '' then
+    Updated := ReplaceRootListenPort(Updated, PortText);
+  PortText := NormalizedPort(NtTcpPort, DefaultNtTcpPort);
+  if PortText <> '' then
+    Updated := ReplaceObjectPort(Updated, 'tcp', PortText);
 
   if Trim(DiscordWebhook) <> '' then
     Updated := ReplaceDiscordWebhook(Updated, Trim(DiscordWebhook))
@@ -424,8 +584,22 @@ end;
 
 procedure InitializeWizard;
 begin
-  DiscordPage := CreateInputQueryPage(
+  ListenPage := CreateInputQueryPage(
     wpSelectTasks,
+    'Local ports',
+    'HTTP webhook and NinjaTrader TCP',
+    'Trade Desky uses HTTP 5090 and NT TCP 7077 by default. Change these if those are taken.' +
+      Chr(13) + Chr(10) +
+    'Set the same TCP port in the Webhook Trade Listener panel. Chrome extension: ' +
+      'http://127.0.0.1:<http-port>/signal'
+  );
+  ListenPage.Add('HTTP listen port:', False);
+  ListenPage.Add('NinjaTrader TCP port:', False);
+  ListenPage.Values[0] := DefaultListenPort;
+  ListenPage.Values[1] := DefaultNtTcpPort;
+
+  DiscordPage := CreateInputQueryPage(
+    ListenPage.ID,
     'Discord alerts (optional)',
     'Flow signal Discord webhook',
     'Paste your Discord webhook URL to receive trade / blocked-signal alerts.' +
@@ -450,15 +624,41 @@ end;
 
 procedure CurPageChanged(CurPageID: Integer);
 begin
-  if (CurPageID = DiscordPage.ID) or (CurPageID = OptionsPage.ID) then
+  if (CurPageID = ListenPage.ID) or
+     (CurPageID = DiscordPage.ID) or
+     (CurPageID = OptionsPage.ID) then
     PrefillWizardFromExistingConfig;
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
-  Url: String;
+  Url, HttpPort, TcpPort: String;
 begin
   Result := True;
+  if CurPageID = ListenPage.ID then
+  begin
+    HttpPort := NormalizedPort(ListenPage.Values[0], DefaultListenPort);
+    TcpPort := NormalizedPort(ListenPage.Values[1], DefaultNtTcpPort);
+    if (HttpPort = '') or (TcpPort = '') then
+    begin
+      MsgBox(
+        'Each port must be an integer between 1 and 65535.',
+        mbError,
+        MB_OK
+      );
+      Result := False;
+    end
+    else if HttpPort = TcpPort then
+    begin
+      MsgBox(
+        'HTTP listen port and NinjaTrader TCP port must be different.',
+        mbError,
+        MB_OK
+      );
+      Result := False;
+    end;
+  end;
+
   if CurPageID = DiscordPage.ID then
   begin
     Url := Trim(DiscordPage.Values[0]);
@@ -507,6 +707,8 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
     WriteReceiverConfig(
+      ListenPage.Values[0],
+      ListenPage.Values[1],
       DiscordPage.Values[0],
       OptionsPage.Values[0],
       OptionsPage.Values[1]

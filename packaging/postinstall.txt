@@ -5,15 +5,15 @@ NEXT STEPS — NinjaTrader Add-On
 2. Tools → Import → NinjaScript Add-On…
 3. Choose WebhookTradeListener-AddOn.zip from this install folder (also copied to Desktop if you checked that option)
 4. Compile if prompted, then: New → Webhook Trade Listener
-5. Set Account / Instrument / Quantity → Start Listener
+5. Set Account / Instrument / Quantity, match TCP port to setup, then Start Listener
 
 Webhook Receiver
-- Listens on http://127.0.0.1:5088 (no secret)
-- Needs NT listener on 127.0.0.1:7077
+- Listens on http://127.0.0.1:<listen-port> (default 5088; chosen during setup)
+- Forwards to NT TCP 127.0.0.1:<tcp-port> (default 7077; chosen during setup; must match the listener panel)
 - Discord webhook (if entered during setup) is saved in config.json → flow.discord_webhook_url
 
 Flow Chrome extension
-- Point Options / Futures webhooks to http://127.0.0.1:5088/signal
+- Point Options / Futures webhooks to http://127.0.0.1:<listen-port>/signal
 - See FLOW_TRADING.md
 
 Options trade-receiver
@@ -22,5 +22,5 @@ Options trade-receiver
 - See OPTIONS_TRADING.md
 
 Tunnel (TradingView)
-- Use ngrok/cloudflare to https → http://127.0.0.1:5088
+- Use ngrok/cloudflare to https → http://127.0.0.1:<listen-port>
 - See start-ngrok-tunnel.cmd and DISTRIBUTION.md

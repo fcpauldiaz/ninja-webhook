@@ -9,19 +9,20 @@
 ## Option A — Full installer (recommended)
 
 1. Run **NinjaWebhook-Setup.exe**
-2. When prompted, Discord / options fields are pre-filled from an existing `config.json` if present (edit or leave as-is)
-3. Optionally enter/update the options trade-receiver URL and device API key
-4. Finish the wizard (receiver is installed; Add-On zip is placed on the Desktop / install folder)
-3. Open **NinjaTrader 8**
-4. **Tools → Import → NinjaScript Add-On…**
-5. Select **WebhookTradeListener-AddOn.zip**
-6. Allow compile / restart if prompted
-7. **New → Webhook Trade Listener**
-8. Set Account, Instrument, Quantity → **Start Listener**
-9. Run **Webhook Receiver** from the Start Menu
-10. Point your tunnel (ngrok/cloudflare) at `http://127.0.0.1:5088`
-11. For flow automation, set the Chrome extension webhook to
-    `http://127.0.0.1:5088/signal` and see **FLOW_TRADING.md**
+2. When prompted, set the HTTP listen port (default `5088`) and NinjaTrader TCP port (default `7077`) if Trade Desky already uses those ports
+3. Discord / options fields are pre-filled from an existing `config.json` if present (edit or leave as-is)
+4. Optionally enter/update the options trade-receiver URL and device API key
+5. Finish the wizard (receiver is installed; Add-On zip is placed on the Desktop / install folder)
+6. Open **NinjaTrader 8**
+7. **Tools → Import → NinjaScript Add-On…**
+8. Select **WebhookTradeListener-AddOn.zip**
+9. Allow compile / restart if prompted
+10. **New → Webhook Trade Listener**
+11. Set Account, Instrument, Quantity, and the same TCP port as setup → **Start Listener**
+12. Run **Webhook Receiver** from the Start Menu
+13. Point your tunnel (ngrok/cloudflare) at `http://127.0.0.1:<listen-port>` (default `5088`)
+14. For flow automation, set the Chrome extension webhook to
+    `http://127.0.0.1:<listen-port>/signal` and see **FLOW_TRADING.md**
 
 ## Option B — Portable zip
 
@@ -32,8 +33,8 @@
 ## Notes
 
 - Receiver and NinjaTrader must run on the **same PC**
-- TCP: receiver → `127.0.0.1:7077` (listener panel)
-- HTTP: webhook / tunnel → `127.0.0.1:5088`
+- TCP: receiver → `127.0.0.1:<tcp-port>` (installer default `7077`; must match the listener panel)
+- HTTP: webhook / tunnel → `127.0.0.1:<listen-port>` (installer default `5088`)
 - Account, instrument, and quantity are set in the **NT panel** (not the alert)
 - The integrated flow endpoint replaces the separate flow bot and signal splitter
 - Discord alerts are optional; configure a new private URL in `config.json`

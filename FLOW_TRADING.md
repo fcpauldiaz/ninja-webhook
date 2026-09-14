@@ -4,7 +4,7 @@ The Python receiver now accepts Chrome extension flow signals directly and appli
 
 ## Extension setup
 
-Set both extension webhook URLs to:
+Set both extension webhook URLs to the receiver listen port (default `5088`; the installer can change this if Trade Desky already uses that port):
 
 ```text
 http://127.0.0.1:5088/signal
@@ -37,7 +37,7 @@ Edit `config.json` beside `WebhookReceiver.exe`:
 }
 ```
 
-The installer can prompt for a Discord webhook URL and writes it to `flow.discord_webhook_url` in `config.json`. You can also edit that field later. Keep it private and do not commit it.
+The installer can set HTTP `port` (default `5088`) and `tcp.port` (default `7077`) so they do not collide with Trade Desky. Match `tcp.port` in the Webhook Trade Listener panel. It can also write a Discord webhook URL to `flow.discord_webhook_url`. You can also edit those fields later. Keep the Discord URL private and do not commit it.
 
 NinjaTrader still owns the actual account, instrument, and quantity through the Webhook Trade Listener panel. The flow payload's calculated quantity is validated and logged, but the panel quantity controls NinjaTrader execution.
 

@@ -15,14 +15,14 @@ Or copy the three `.cs` files into `Documents\NinjaTrader 8\bin\Custom\AddOns\` 
 
 | Field | Purpose |
 |-------|---------|
-| TCP Port | `7077` (must match receiver `tcp.port`) |
+| TCP Port | Default `7077` (must match receiver `tcp.port`; change both if Trade Desky already uses 7077) |
 | Account | Connected account (e.g. Sim101) |
 | Instrument | Traded contract (alert symbol ignored) |
 | Quantity | Contract size (alert qty ignored) |
 | Dedupe Window | Duplicate `id` protection |
 | ENABLE LIVE TRADING | Off = validate/log only; On = submit orders |
 
-Click **Start Listener**. Status should show listening on `127.0.0.1:7077`.
+Click **Start Listener**. Status should show listening on `127.0.0.1` and the chosen TCP port.
 
 Keep a live chart/DOM open on the instrument so bracket orders can read bid/ask.
 
@@ -40,6 +40,6 @@ Keep a live chart/DOM open on the instrument so bracket orders can read bid/ask.
 |---------|--------|
 | Import/compile errors | Import all three files; recompile |
 | Menu missing | Restart NT after compile |
-| Receiver 502 | Listener Started; port 7077 |
+| Receiver 502 | Listener Started; TCP port matches `tcp.port` |
 | No market price for bracket | Open live chart for the panel instrument |
 | Instrument not found | Use exact NT name (e.g. `ES 09-26`) |

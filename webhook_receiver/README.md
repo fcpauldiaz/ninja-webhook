@@ -19,7 +19,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-Listens on `http://127.0.0.1:5088` by default (`config.json`).
+Listens on `http://127.0.0.1:5088` by default (`config.json` `port`; the installer can change this).
 
 ## Configure
 
@@ -28,7 +28,7 @@ Listens on `http://127.0.0.1:5088` by default (`config.json`).
 | `target` | `ninjatrader` \| `sierrachart` \| `both` |
 | `webhook.dry_run` | Validate only; do not forward |
 | `risk.*` | Optional allowlists / max quantity |
-| `tcp.host` / `tcp.port` | NinjaTrader listener (`127.0.0.1:7077`) |
+| `tcp.host` / `tcp.port` | NinjaTrader listener (`127.0.0.1:7077` by default; installer can change `tcp.port`) |
 | `sierra.*` | Sierra Chart DTC account / symbol / qty / port |
 | `symbol_map` | Alert ticker → NT name (logs / legacy) |
 | `sierra.symbol_map` | Alert ticker → SC symbol |
