@@ -1,24 +1,56 @@
 from __future__ import annotations
 
-import getpass
 import json
-import shutil
 from pathlib import Path
 from typing import Any
 
 from paths import bundled_resource, config_path
 
-PLACEHOLDER_SECRETS = frozenset(
-    {
-        "",
-        "change-me-now",
-        "YOUR_SECRET_HERE",
-    }
-)
-
-
-def _read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+FALLBACK_CONFIG: dict[str, Any] = {
+    "host": "127.0.0.1",
+    "port": 5088,
+    "target": "ninjatrader",
+    "webhook": {"dry_run": False},
+    "flow": {
+        "enabled": True,
+        "discord_webhook_url": "",
+        "symbol": "ES1!",
+        "contract_label": "MES 09-26",
+        "base_contracts": 1,
+        "stop_loss_ticks": 25,
+        "profit_target_ticks": 32,
+        "timezone": "America/New_York",
+    },
+    "options": {
+        "enabled": False,
+        "webhook_url": "",
+        "api_key": "",
+        "timeout_sec": 20,
+    },
+    "risk": {
+        "enable_trading": True,
+        "max_quantity": 1,
+        "allowed_symbols": [],
+        "allowed_actions": ["BUY", "SELL", "EXIT_LONG", "EXIT_SHORT", "FLATTEN"],
+        "allowed_order_types": ["MARKET"],
+    },
+    "tcp": {"host": "127.0.0.1", "port": 7077, "connect_timeout_sec": 3.0},
+    "sierra": {
+        "host": "127.0.0.1",
+        "port": 11099,
+        "trade_account": "Sim1",
+        "symbol": "ESU26-CME",
+        "quantity": 1,
+    },
+    "dedupe": {"window_seconds": 300, "entry_cooldown_seconds": 300},
+    "trading_hours": {
+        "enabled": False,
+        "timezone": "America/New_York",
+        "start": "09:30",
+        "end": "16:00",
+    },
+    "symbol_map": {},
+}
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
@@ -26,87 +58,45 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def ensure_config_file() -> Path:
-    dest = config_path()
-    if dest.exists():
-        return dest
-
+def _load_defaults() -> dict[str, Any]:
     defaults = bundled_resource("config.defaults.json")
-    if defaults.exists():
-        shutil.copyfile(defaults, dest)
+    if not defaults.exists():
+        return FALLBACK_CONFIG
+    try:
+        return json.loads(defaults.read_text(encoding="utf-8-sig"))
+    except json.JSONDecodeError:
+        return FALLBACK_CONFIG
+
+
+def _fill_missing(current: dict[str, Any], defaults: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(current)
+    for key, default_value in defaults.items():
+        current_value = merged.get(key)
+        if key not in merged:
+            merged[key] = default_value
+        elif isinstance(default_value, dict) and isinstance(current_value, dict):
+            merged[key] = _fill_missing(current_value, default_value)
+    return merged
+
+
+def ensure_config_file() -> Path:
+    """Create config.json, or top up an older one with newly added settings."""
+    dest = config_path()
+    defaults = _load_defaults()
+
+    if not dest.exists():
+        _write_json(dest, defaults)
         return dest
 
-    _write_json(
-        dest,
-        {
-            "host": "127.0.0.1",
-            "port": 5088,
-            "webhook": {"secret": "", "dry_run": False},
-            "risk": {
-                "enable_trading": True,
-                "max_quantity": 1,
-                "allowed_symbols": [],
-                "allowed_actions": ["BUY", "SELL", "EXIT_LONG", "EXIT_SHORT", "FLATTEN"],
-                "allowed_order_types": ["MARKET"],
-            },
-            "tcp": {"host": "127.0.0.1", "port": 7077, "connect_timeout_sec": 3.0},
-            "dedupe": {"window_seconds": 300},
-            "trading_hours": {
-                "enabled": False,
-                "timezone": "America/New_York",
-                "start": "09:30",
-                "end": "16:00",
-            },
-            "symbol_map": {},
-        },
-    )
+    try:
+        current = json.loads(dest.read_text(encoding="utf-8-sig"))
+    except (json.JSONDecodeError, OSError):
+        return dest
+
+    if not isinstance(current, dict):
+        return dest
+
+    merged = _fill_missing(current, defaults)
+    if merged != current:
+        _write_json(dest, merged)
     return dest
-
-
-def current_secret(path: Path | None = None) -> str:
-    cfg = path or ensure_config_file()
-    raw = _read_json(cfg)
-    return str(raw.get("webhook", {}).get("secret", "")).strip()
-
-
-def needs_secret_setup(path: Path | None = None) -> bool:
-    return current_secret(path) in PLACEHOLDER_SECRETS
-
-
-def save_secret(secret: str, path: Path | None = None) -> Path:
-    cfg_path = path or ensure_config_file()
-    raw = _read_json(cfg_path)
-    webhook = dict(raw.get("webhook", {}))
-    webhook["secret"] = secret
-    raw["webhook"] = webhook
-    _write_json(cfg_path, raw)
-    return cfg_path
-
-
-def prompt_secret(force: bool = False) -> str:
-    ensure_config_file()
-    if not force and not needs_secret_setup():
-        return current_secret()
-
-    print()
-    print("=== WebhookNt8Bridge setup ===")
-    print("Set the shared webhook secret used by TradingView / curl")
-    print("(header X-Webhook-Secret). Stored in config.json next to this app.")
-    print()
-
-    while True:
-        secret = getpass.getpass("Webhook secret: ").strip()
-        if not secret:
-            print("Secret cannot be empty.")
-            continue
-        if secret in PLACEHOLDER_SECRETS:
-            print("Choose a unique secret, not a placeholder value.")
-            continue
-        confirm = getpass.getpass("Confirm secret: ").strip()
-        if secret != confirm:
-            print("Secrets do not match. Try again.")
-            continue
-        saved = save_secret(secret)
-        print(f"Saved secret to {saved}")
-        print()
-        return secret

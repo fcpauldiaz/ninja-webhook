@@ -1,0 +1,7 @@
+{
+  "id": "sc-buy-001",
+  "source": "curl",
+  "symbol": "ES1!",
+  "action": "BUY",
+  "orderType": "MARKET"
+}

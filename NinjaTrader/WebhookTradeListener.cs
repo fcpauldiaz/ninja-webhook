@@ -781,6 +781,22 @@ namespace NinjaTrader.NinjaScript.AddOns
 				return;
 			}
 
+			// Prevent stacking: ignore BUY while already long, SELL while already short.
+			Position openPosition = account.Positions.FirstOrDefault(p => p.Instrument == instrument);
+			if (openPosition != null && openPosition.MarketPosition != MarketPosition.Flat)
+			{
+				if (command.Action == "BUY" && openPosition.MarketPosition == MarketPosition.Long)
+				{
+					Log("BUY ignored; already Long " + openPosition.Quantity + " on " + instrument.FullName);
+					return;
+				}
+				if (command.Action == "SELL" && openPosition.MarketPosition == MarketPosition.Short)
+				{
+					Log("SELL ignored; already Short " + openPosition.Quantity + " on " + instrument.FullName);
+					return;
+				}
+			}
+
 			OrderAction entryAction = command.Action == "BUY" ? OrderAction.Buy : OrderAction.Sell;
 			SubmitMarket(
 				account,

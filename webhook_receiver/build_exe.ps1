@@ -10,8 +10,14 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m pip install "pyinstaller>=6.0" tzdata
 
-if (Test-Path .\dist) { Remove-Item -Recurse -Force .\dist }
-if (Test-Path .\build) { Remove-Item -Recurse -Force .\build }
+if (Test-Path .\dist) {
+    try {
+        Remove-Item -Recurse -Force .\dist
+    } catch {
+        Write-Host "WARNING: could not clear dist (EXE may be running). Building anyway..."
+    }
+}
+if (Test-Path .\build) { Remove-Item -Recurse -Force .\build -EA SilentlyContinue }
 
 .\.venv\Scripts\pyinstaller.exe --noconfirm WebhookReceiver.spec
 
@@ -22,5 +28,4 @@ if (-not (Test-Path $out)) {
 
 Write-Host ""
 Write-Host "Built: $out"
-Write-Host "Ship that EXE to users. On first launch it prompts for the webhook secret"
-Write-Host "and writes config.json next to the EXE."
+Write-Host "Ship that EXE to users. On first launch it writes config.json next to the EXE."

@@ -2,6 +2,7 @@ bin/
 obj/
 logs/
 tools/
+release/
 .vs/
 *.user
 appsettings.*.local.json
