@@ -132,24 +132,24 @@ Remove-Item -Recurse -Force $staging -EA SilentlyContinue
 # --- Trade Desky public download names (trade-receiver /desktop aliases) ---
 Write-Host "==> Writing TradeDeskyNinjaTraderReceiver publish names"
 $versionPy = Join-Path $root "webhook_receiver\version.py"
-$version = (
-    Select-String -Path $versionPy -Pattern '__version__\s*=\s*"([^"]+)"' |
-    ForEach-Object { $_.Matches[0].Groups[1].Value } |
-    Select-Object -First 1
-)
-if (-not $version) { throw "Could not read version from webhook_receiver\version.py" }
+$versionLine = Get-Content $versionPy | Where-Object { $_ -match '__version__' } | Select-Object -First 1
+if (-not ($versionLine -match '__version__\s*=\s*"([^"]+)"')) {
+    throw "Could not read version from webhook_receiver\version.py"
+}
+$version = $Matches[1]
 
-$tdSetup = Join-Path $release "TradeDeskyNinjaTraderReceiver-$version-setup.exe"
-$tdZip = Join-Path $release "TradeDeskyNinjaTraderReceiver-$version-win.zip"
+$tdSetup = Join-Path $release ("TradeDeskyNinjaTraderReceiver-{0}-setup.exe" -f $version)
+$tdZip = Join-Path $release ("TradeDeskyNinjaTraderReceiver-{0}-win.zip" -f $version)
 $setupSrc = Join-Path $release "NinjaWebhook-Setup.exe"
 if (Test-Path $setupSrc) {
     Copy-Item -Force $setupSrc $tdSetup
 } else {
-    Write-Host "WARNING: $setupSrc missing — TradeDesky setup alias not written"
+    Write-Host "WARNING: NinjaWebhook-Setup.exe missing; TradeDesky setup file not written"
 }
 Copy-Item -Force $portableZip $tdZip
 
-python (Join-Path $root "scripts\write_appcast.py") --release $release --version $version
+$writeAppcast = Join-Path $root "scripts\write_appcast.py"
+& python $writeAppcast --release $release --version $version
 if ($LASTEXITCODE -ne 0) { throw "write_appcast.py failed" }
 
 Write-Host ""
