@@ -19,7 +19,7 @@
 9. Allow compile / restart if prompted
 10. **New → Webhook Trade Listener**
 11. Set Account, Instrument, Quantity, and the same TCP port as setup → **Start Listener**
-12. Run **Webhook Receiver** from the Start Menu
+12. Run **Webhook Receiver** from the Start Menu — it appears in the **system tray** (notification area), not a CMD window
 13. Point your tunnel (ngrok/cloudflare) at `http://127.0.0.1:<listen-port>` (default `5088`)
 14. For flow automation, set the Chrome extension webhook to
     `http://127.0.0.1:<listen-port>/signal` and see **FLOW_TRADING.md**
@@ -28,11 +28,13 @@
 
 1. Unzip **NinjaWebhook-Portable.zip** anywhere
 2. Import **WebhookTradeListener-AddOn.zip** in NinjaTrader (same steps 3–8 above)
-3. Run **WebhookReceiver.exe**
+3. Run **WebhookReceiver.exe** — tray icon in the notification area; right-click for logs / quit
 
 ## Notes
 
 - Receiver and NinjaTrader must run on the **same PC**
+- The receiver EXE is windowed (`console=False`): status and logs via the tray menu (`logs\receiver.log`)
+- Optional installer task: start the receiver with Windows (Startup folder shortcut)
 - TCP: receiver → `127.0.0.1:<tcp-port>` (installer default `7077`; must match the listener panel)
 - HTTP: webhook / tunnel → `127.0.0.1:<listen-port>` (installer default `5088`)
 - Account, instrument, and quantity are set in the **NT panel** (not the alert)

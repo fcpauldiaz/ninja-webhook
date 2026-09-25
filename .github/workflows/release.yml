@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build release artifacts
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\pack-release.ps1
+          Get-ChildItem release -File | Format-Table Name, Length
+
+      - name: Publish assets to trade-receiver
+        env:
+          # Origin hostname — Cloudflare front door may challenge GitHub Actions IPs.
+          RECEIVER_API_URL: ${{ secrets.RECEIVER_API_URL }}
+          INTERNAL_API_SECRET: ${{ secrets.INTERNAL_API_SECRET }}
+        shell: pwsh
+        run: |
+          if (-not $env:INTERNAL_API_SECRET) {
+            throw "INTERNAL_API_SECRET secret is required"
+          }
+          $receiver = if ($env:RECEIVER_API_URL) { $env:RECEIVER_API_URL } else { "https://jo043ipmi6z055zb9jl8lffb.5.161.80.220.sslip.io" }
+          python scripts/publish_desktop_assets.py --receiver $receiver --dir release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ninja-webhook-release
+          path: |
+            release/TradeDeskyNinjaTraderReceiver-*
+            release/WebhookReceiver.exe
+            release/WebhookTradeListener-AddOn.zip
+            release/NinjaWebhook-Setup.exe
+            release/NinjaWebhook-Portable.zip

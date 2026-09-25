@@ -15,11 +15,21 @@ pip install -r requirements.txt
 
 ## Run
 
+**Packaged EXE / normal use:** run `WebhookReceiver.exe` — it lives in the Windows **system tray** (no CMD window). Right-click for status, logs, config folder, restart, or quit.
+
+**Dev (console):**
+
 ```powershell
 python main.py
 ```
 
-Listens on `http://127.0.0.1:5088` by default (`config.json` `port`; the installer can change this).
+**Dev (tray, same as the EXE):**
+
+```powershell
+python tray_app.py
+```
+
+Listens on `http://127.0.0.1:5088` by default (`config.json` `port`; the installer can change this). Tray/EXE logs go to `logs\receiver.log` next to the app.
 
 ## Configure
 

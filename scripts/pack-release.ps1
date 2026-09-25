@@ -129,6 +129,52 @@ if ($iscc) {
 
 Remove-Item -Recurse -Force $staging -EA SilentlyContinue
 
+# --- Trade Desky public download names (trade-receiver /desktop aliases) ---
+Write-Host "==> Writing TradeDeskyNinjaTraderReceiver publish names"
+$versionPy = Join-Path $root "webhook_receiver\version.py"
+$version = (
+    Select-String -Path $versionPy -Pattern '__version__\s*=\s*"([^"]+)"' |
+    ForEach-Object { $_.Matches[0].Groups[1].Value } |
+    Select-Object -First 1
+)
+if (-not $version) { throw "Could not read version from webhook_receiver\version.py" }
+
+$tdSetup = Join-Path $release "TradeDeskyNinjaTraderReceiver-$version-setup.exe"
+$tdZip = Join-Path $release "TradeDeskyNinjaTraderReceiver-$version-win.zip"
+$setupSrc = Join-Path $release "NinjaWebhook-Setup.exe"
+if (Test-Path $setupSrc) {
+    Copy-Item -Force $setupSrc $tdSetup
+} else {
+    Write-Host "WARNING: $setupSrc missing — TradeDesky setup alias not written"
+}
+Copy-Item -Force $portableZip $tdZip
+
+$setupUrl = "https://trade-receiver.chapilabs.com/desktop/TradeDeskyNinjaTraderReceiver-$version-setup.exe"
+$zipUrl = "https://trade-receiver.chapilabs.com/desktop/TradeDeskyNinjaTraderReceiver-$version-win.zip"
+$setupLen = if (Test-Path $tdSetup) { (Get-Item $tdSetup).Length } else { 0 }
+$zipLen = (Get-Item $tdZip).Length
+$pubDate = (Get-Date).ToUniversalTime().ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT"
+$appcast = @"
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Trade Desky NinjaTrader Receiver</title>
+    <language>en</language>
+    <item>
+      <title>Version $version</title>
+      <pubDate>$pubDate</pubDate>
+      <enclosure url="$setupUrl" sparkle:version="$version" length="$setupLen" type="application/octet-stream" />
+      <sparkle:version>$version</sparkle:version>
+      <description><![CDATA[System-tray webhook receiver for NinjaTrader. Portable: $zipUrl ($zipLen bytes)]]></description>
+    </item>
+  </channel>
+</rss>
+"@
+$appcastVersioned = Join-Path $release "TradeDeskyNinjaTraderReceiver-$version-appcast.xml"
+$appcastStable = Join-Path $release "TradeDeskyNinjaTraderReceiver-appcast.xml"
+[System.IO.File]::WriteAllText($appcastVersioned, $appcast)
+[System.IO.File]::WriteAllText($appcastStable, $appcast)
+
 Write-Host ""
 Write-Host ("Release artifacts in {0}:" -f $release)
 Get-ChildItem $release -File | Format-Table Name, Length, LastWriteTime -AutoSize

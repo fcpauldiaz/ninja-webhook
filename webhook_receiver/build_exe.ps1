@@ -8,7 +8,7 @@ if (-not (Test-Path .\.venv\Scripts\python.exe)) {
 
 .\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m pip install "pyinstaller>=6.0" tzdata
+.\.venv\Scripts\python.exe -m pip install "pyinstaller>=6.0" tzdata pystray Pillow
 
 if (Test-Path .\dist) {
     try {
@@ -28,4 +28,5 @@ if (-not (Test-Path $out)) {
 
 Write-Host ""
 Write-Host "Built: $out"
-Write-Host "Ship that EXE to users. On first launch it writes config.json next to the EXE."
+Write-Host "Ship that EXE to users (system tray, no console)."
+Write-Host "On first launch it writes config.json next to the EXE; logs go to logs\receiver.log."

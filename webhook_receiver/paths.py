@@ -18,3 +18,7 @@ def bundled_resource(name: str) -> Path:
 
 def config_path() -> Path:
     return app_dir() / "config.json"
+
+
+def log_path() -> Path:
+    return app_dir() / "logs" / "receiver.log"

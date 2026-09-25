@@ -27,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger("webhook")
 
 ensure_config_file()
-app = FastAPI(title="WebhookNt8Bridge Receiver", version="1.2.0")
+app = FastAPI(title="WebhookNt8Bridge Receiver", version="1.3.0")
 config = load_config()
 dedupe = DuplicateCommandCache(config.dedupe_window_seconds)
 entry_cooldown = EntryCooldown(config.entry_cooldown_seconds)

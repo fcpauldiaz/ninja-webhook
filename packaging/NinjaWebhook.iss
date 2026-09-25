@@ -2,7 +2,7 @@
 ; Built by scripts\pack-release.ps1 — do not run against missing release files.
 
 #define MyAppName "NinjaWebhook"
-#define MyAppVersion "1.2.5"
+#define MyAppVersion "1.3.0"
 #define MyAppPublisher "NinjaWebhook"
 #define MyAppExeName "WebhookReceiver.exe"
 #define MyAddOnZip "WebhookTradeListener-AddOn.zip"
@@ -24,7 +24,7 @@ PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 InfoAfterFile=postinstall.txt
-SetupIconFile=
+SetupIconFile=..\webhook_receiver\assets\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 
 [Languages]
@@ -32,6 +32,7 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "startupicon"; Description: "Start receiver with Windows (system tray)"; GroupDescription: "Startup"; Flags: checkedonce
 
 [Files]
 ; Receiver EXE (built by pack-release.ps1 into release\)
@@ -52,9 +53,10 @@ Name: "{group}\Flow signal setup"; Filename: "{app}\FLOW_TRADING.md"
 Name: "{group}\Options forwarding setup"; Filename: "{app}\OPTIONS_TRADING.md"
 Name: "{autodesktop}\{#MyAppName} Receiver"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 Name: "{autodesktop}\WebhookTradeListener-AddOn.zip"; Filename: "{app}\{#MyAddOnZip}"; Tasks: desktopicon
+Name: "{userstartup}\{#MyAppName} Receiver"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "Launch Webhook Receiver"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "Launch receiver (system tray)"; Flags: nowait postinstall skipifsilent
 Filename: "{app}"; Description: "Open install folder (import the Add-On zip in NinjaTrader)"; Flags: shellexec postinstall skipifsilent unchecked
 
 [Code]

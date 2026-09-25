@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for WebhookNt8Bridge receiver EXE.
+# PyInstaller spec for WebhookNt8Bridge receiver EXE (system-tray, no console).
 
 from PyInstaller.utils.hooks import collect_submodules
 
@@ -8,13 +8,18 @@ hiddenimports += collect_submodules("uvicorn")
 hiddenimports += collect_submodules("fastapi")
 hiddenimports += collect_submodules("starlette")
 hiddenimports += collect_submodules("anyio")
-hiddenimports += ["tzdata"]
+hiddenimports += collect_submodules("pystray")
+hiddenimports += ["tzdata", "PIL"]
 
 a = Analysis(
-    ["main.py"],
+    ["tray_app.py"],
     pathex=[],
     binaries=[],
-    datas=[("config.defaults.json", ".")],
+    datas=[
+        ("config.defaults.json", "."),
+        ("assets/icon.ico", "assets"),
+        ("assets/icon.png", "assets"),
+    ],
     hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -38,10 +43,11 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon="assets/icon.ico",
 )

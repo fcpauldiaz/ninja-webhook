@@ -1,5 +1,9 @@
 NinjaWebhook installed.
 
+The webhook receiver runs in the Windows system tray (notification area,
+bottom-right). No console window stays open. Right-click the tray icon for
+status, logs, config folder, restart, or quit.
+
 NEXT STEPS — NinjaTrader Add-On
 1. Open NinjaTrader 8
 2. Tools → Import → NinjaScript Add-On…
@@ -8,8 +12,10 @@ NEXT STEPS — NinjaTrader Add-On
 5. Set Account / Instrument / Quantity, match TCP port to setup, then Start Listener
 
 Webhook Receiver
+- Lives in the system tray after launch (Start Menu → NinjaWebhook Receiver)
 - Listens on http://127.0.0.1:<listen-port> (default 5088; chosen during setup)
 - Forwards to NT TCP 127.0.0.1:<tcp-port> (default 7077; chosen during setup; must match the listener panel)
+- Logs: install folder → logs\receiver.log (Open logs from the tray menu)
 - Discord webhook (if entered during setup) is saved in config.json → flow.discord_webhook_url
 
 Flow Chrome extension

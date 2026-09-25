@@ -31,17 +31,20 @@ Or copy `NinjaTrader/*.cs` into `Documents\NinjaTrader 8\bin\Custom\AddOns\`, co
 ### 2. Sierra Chart (optional if using NT only)
 See [`SIERRA_CHART.md`](SIERRA_CHART.md): enable DTC Protocol Server (port `11099`, Allow Trading), set `"target": "sierrachart"` and `sierra.*` in `config.json`.
 
-### 3. Python receiver
+### 3. Webhook receiver
+
+**Users:** run `WebhookReceiver.exe` (installer or portable). It lives in the Windows **system tray** — no CMD window. Right-click for status, logs, restart, or quit.
+
+**Dev:**
 
 ```powershell
 cd webhook_receiver
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-python main.py
+python tray_app.py   # tray (same as EXE)
+# or: python main.py  # console
 ```
-
-Or run the packaged EXE (`WebhookReceiver.exe` / installer from `scripts\pack-release.ps1`).
 
 Edit `webhook_receiver/config.json`:
 - `"target"`: `ninjatrader` (default), `sierrachart`, or `both`
