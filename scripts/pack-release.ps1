@@ -154,6 +154,7 @@ $zipUrl = "https://trade-receiver.chapilabs.com/desktop/TradeDeskyNinjaTraderRec
 $setupLen = if (Test-Path $tdSetup) { (Get-Item $tdSetup).Length } else { 0 }
 $zipLen = (Get-Item $tdZip).Length
 $pubDate = (Get-Date).ToUniversalTime().ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT"
+$desc = "System-tray webhook receiver for NinjaTrader. Portable zip: $zipUrl ($zipLen bytes)."
 $appcast = @"
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
@@ -165,7 +166,7 @@ $appcast = @"
       <pubDate>$pubDate</pubDate>
       <enclosure url="$setupUrl" sparkle:version="$version" length="$setupLen" type="application/octet-stream" />
       <sparkle:version>$version</sparkle:version>
-      <description><![CDATA[System-tray webhook receiver for NinjaTrader. Portable: $zipUrl ($zipLen bytes)]]></description>
+      <description><![CDATA[$desc]]></description>
     </item>
   </channel>
 </rss>
