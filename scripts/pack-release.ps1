@@ -149,32 +149,8 @@ if (Test-Path $setupSrc) {
 }
 Copy-Item -Force $portableZip $tdZip
 
-$setupUrl = "https://trade-receiver.chapilabs.com/desktop/TradeDeskyNinjaTraderReceiver-$version-setup.exe"
-$zipUrl = "https://trade-receiver.chapilabs.com/desktop/TradeDeskyNinjaTraderReceiver-$version-win.zip"
-$setupLen = if (Test-Path $tdSetup) { (Get-Item $tdSetup).Length } else { 0 }
-$zipLen = (Get-Item $tdZip).Length
-$pubDate = (Get-Date).ToUniversalTime().ToString("ddd, dd MMM yyyy HH:mm:ss") + " GMT"
-$desc = "System-tray webhook receiver for NinjaTrader. Portable zip: $zipUrl ($zipLen bytes)."
-$appcast = @"
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
-  <channel>
-    <title>Trade Desky NinjaTrader Receiver</title>
-    <language>en</language>
-    <item>
-      <title>Version $version</title>
-      <pubDate>$pubDate</pubDate>
-      <enclosure url="$setupUrl" sparkle:version="$version" length="$setupLen" type="application/octet-stream" />
-      <sparkle:version>$version</sparkle:version>
-      <description><![CDATA[$desc]]></description>
-    </item>
-  </channel>
-</rss>
-"@
-$appcastVersioned = Join-Path $release "TradeDeskyNinjaTraderReceiver-$version-appcast.xml"
-$appcastStable = Join-Path $release "TradeDeskyNinjaTraderReceiver-appcast.xml"
-[System.IO.File]::WriteAllText($appcastVersioned, $appcast)
-[System.IO.File]::WriteAllText($appcastStable, $appcast)
+python (Join-Path $root "scripts\write_appcast.py") --release $release --version $version
+if ($LASTEXITCODE -ne 0) { throw "write_appcast.py failed" }
 
 Write-Host ""
 Write-Host ("Release artifacts in {0}:" -f $release)
