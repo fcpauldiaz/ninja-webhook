@@ -129,29 +129,6 @@ if ($iscc) {
 
 Remove-Item -Recurse -Force $staging -EA SilentlyContinue
 
-# --- Trade Desky public download names (trade-receiver /desktop aliases) ---
-Write-Host "==> Writing TradeDeskyNinjaTraderReceiver publish names"
-$versionPy = Join-Path $root "webhook_receiver\version.py"
-$versionLine = Get-Content $versionPy | Where-Object { $_ -match '__version__' } | Select-Object -First 1
-if (-not ($versionLine -match '__version__\s*=\s*"([^"]+)"')) {
-    throw "Could not read version from webhook_receiver\version.py"
-}
-$version = $Matches[1]
-
-$tdSetup = Join-Path $release ("TradeDeskyNinjaTraderReceiver-{0}-setup.exe" -f $version)
-$tdZip = Join-Path $release ("TradeDeskyNinjaTraderReceiver-{0}-win.zip" -f $version)
-$setupSrc = Join-Path $release "NinjaWebhook-Setup.exe"
-if (Test-Path $setupSrc) {
-    Copy-Item -Force $setupSrc $tdSetup
-} else {
-    Write-Host "WARNING: NinjaWebhook-Setup.exe missing; TradeDesky setup file not written"
-}
-Copy-Item -Force $portableZip $tdZip
-
-$writeAppcast = Join-Path $root "scripts\write_appcast.py"
-& python $writeAppcast --release $release --version $version
-if ($LASTEXITCODE -ne 0) { throw "write_appcast.py failed" }
-
 Write-Host ""
 Write-Host ("Release artifacts in {0}:" -f $release)
 Get-ChildItem $release -File | Format-Table Name, Length, LastWriteTime -AutoSize
