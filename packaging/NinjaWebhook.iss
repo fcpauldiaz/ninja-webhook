@@ -2,7 +2,7 @@
 ; Built by scripts\pack-release.ps1 — do not run against missing release files.
 
 #define MyAppName "NinjaWebhook"
-#define MyAppVersion "1.3.0"
+#define MyAppVersion "1.3.1"
 #define MyAppPublisher "NinjaWebhook"
 #define MyAppExeName "WebhookReceiver.exe"
 #define MyAddOnZip "WebhookTradeListener-AddOn.zip"

@@ -17,7 +17,7 @@ Or copy the three `.cs` files into `Documents\NinjaTrader 8\bin\Custom\AddOns\` 
 |-------|---------|
 | TCP Port | Default `7077` (must match receiver `tcp.port`; change both if Trade Desky already uses 7077) |
 | Account | Connected account (e.g. Sim101) |
-| Instrument | Traded contract (alert symbol ignored) |
+| Instrument | Traded contract from NT rollovers (alert symbol ignored); dropdown refreshes on open |
 | Quantity | Contract size (alert qty ignored) |
 | Dedupe Window | Duplicate `id` protection |
 | ENABLE LIVE TRADING | Off = validate/log only; On = submit orders |
@@ -42,4 +42,4 @@ Keep a live chart/DOM open on the instrument so bracket orders can read bid/ask.
 | Menu missing | Restart NT after compile |
 | Receiver 502 | Listener Started; TCP port matches `tcp.port` |
 | No market price for bracket | Open live chart for the panel instrument |
-| Instrument not found | Use exact NT name (e.g. `ES 09-26`) |
+| Instrument not found | Pick a listed contract or type the exact NT name (e.g. `ES 12-26`); reopen the dropdown to refresh months |

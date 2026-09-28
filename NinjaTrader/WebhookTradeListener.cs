@@ -211,21 +211,15 @@ namespace NinjaTrader.NinjaScript.AddOns
 		private volatile bool _running;
 		private volatile bool _liveTradingEnabled;
 		private volatile string _configuredAccount = "Sim101";
-		private volatile string _configuredInstrument = "ES 09-26";
+		private volatile string _configuredInstrument = string.Empty;
 		private volatile int _configuredQuantity = 1;
 		private WebhookDuplicateCache _dedupe = new WebhookDuplicateCache(300);
 		private readonly object _logSync = new object();
 
-		private static readonly string[] DefaultInstruments =
+		// Roots only — contract months are resolved from NinjaTrader at runtime.
+		private static readonly string[] FuturesRoots =
 		{
-			"ES 09-26",
-			"MES 09-26",
-			"NQ 09-26",
-			"MNQ 09-26",
-			"YM 09-26",
-			"MYM 09-26",
-			"RTY 09-26",
-			"M2K 09-26"
+			"ES", "MES", "NQ", "MNQ", "YM", "MYM", "RTY", "M2K"
 		};
 
 		public WebhookTradeListenerWindow()
@@ -350,11 +344,8 @@ namespace NinjaTrader.NinjaScript.AddOns
 			panel.Children.Add(new TextBlock { Text = label, Margin = new Thickness(0, 0, 0, 2) });
 
 			var combo = new ComboBox { IsEditable = true };
-			for (int i = 0; i < DefaultInstruments.Length; i++)
-				combo.Items.Add(DefaultInstruments[i]);
-			combo.SelectedItem = "ES 09-26";
-			combo.Text = "ES 09-26";
-			_configuredInstrument = "ES 09-26";
+			RefreshInstrumentSelector(combo);
+			combo.DropDownOpened += (s, e) => RefreshInstrumentSelector(combo);
 
 			combo.SelectionChanged += (s, e) =>
 			{
@@ -373,6 +364,158 @@ namespace NinjaTrader.NinjaScript.AddOns
 			Grid.SetRow(panel, row);
 			root.Children.Add(panel);
 			return combo;
+		}
+
+		private void RefreshInstrumentSelector(ComboBox combo)
+		{
+			string previous = combo.SelectedItem as string;
+			if (string.IsNullOrWhiteSpace(previous))
+				previous = (combo.Text ?? string.Empty).Trim();
+			if (string.IsNullOrWhiteSpace(previous))
+				previous = _configuredInstrument;
+
+			List<string> names = GetFuturesInstrumentNames();
+			combo.Items.Clear();
+			for (int i = 0; i < names.Count; i++)
+				combo.Items.Add(names[i]);
+
+			if (names.Count == 0)
+			{
+				string typed = (previous ?? string.Empty).Trim();
+				combo.Text = typed;
+				_configuredInstrument = typed;
+				combo.SelectedIndex = -1;
+				return;
+			}
+
+			string preferred = names.FirstOrDefault(n => string.Equals(n, previous, StringComparison.OrdinalIgnoreCase));
+			if (preferred == null)
+				preferred = ResolveDefaultInstrumentName();
+			if (string.IsNullOrWhiteSpace(preferred) && names.Count > 0)
+				preferred = names[0];
+
+			combo.SelectedItem = preferred;
+			combo.Text = preferred;
+			_configuredInstrument = preferred;
+		}
+
+		private static List<string> GetFuturesInstrumentNames()
+		{
+			var names = new List<string>();
+			DateTime now = DateTime.Now;
+
+			for (int i = 0; i < FuturesRoots.Length; i++)
+			{
+				string root = FuturesRoots[i];
+				try
+				{
+					Instrument continuous = Instrument.GetInstrument(root + " ##-##");
+					if (continuous == null || continuous.MasterInstrument == null)
+						continue;
+
+					MasterInstrument master = continuous.MasterInstrument;
+					DateTime frontExpiry = master.GetNextExpiry(now);
+					string frontName = FormatFuturesContract(root, frontExpiry);
+					AddUniqueInstrument(names, frontName);
+
+					if (master.RolloverCollection != null)
+					{
+						foreach (Rollover rollover in master.RolloverCollection)
+						{
+							if (rollover == null)
+								continue;
+
+							DateTime contractMonth = rollover.ContractMonth;
+							if (contractMonth.Year < frontExpiry.Year
+								|| (contractMonth.Year == frontExpiry.Year && contractMonth.Month < frontExpiry.Month))
+								continue;
+
+							AddUniqueInstrument(names, FormatFuturesContract(root, contractMonth));
+						}
+					}
+				}
+				catch
+				{
+					// Root may be missing from this NinjaTrader instrument database.
+				}
+			}
+
+			names.Sort(CompareFuturesContractNames);
+			return names;
+		}
+
+		private static int CompareFuturesContractNames(string left, string right)
+		{
+			string leftRoot;
+			string rightRoot;
+			DateTime leftExpiry;
+			DateTime rightExpiry;
+			bool leftParsed = TryParseFuturesContractName(left, out leftRoot, out leftExpiry);
+			bool rightParsed = TryParseFuturesContractName(right, out rightRoot, out rightExpiry);
+
+			if (leftParsed && rightParsed)
+			{
+				int rootCompare = string.Compare(leftRoot, rightRoot, StringComparison.OrdinalIgnoreCase);
+				if (rootCompare != 0)
+					return rootCompare;
+				return DateTime.Compare(leftExpiry, rightExpiry);
+			}
+
+			return string.Compare(left, right, StringComparison.OrdinalIgnoreCase);
+		}
+
+		private static bool TryParseFuturesContractName(string fullName, out string root, out DateTime expiry)
+		{
+			root = null;
+			expiry = DateTime.MinValue;
+			if (string.IsNullOrWhiteSpace(fullName))
+				return false;
+
+			string[] parts = fullName.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+			if (parts.Length != 2)
+				return false;
+
+			DateTime parsed;
+			if (!DateTime.TryParseExact(parts[1], "MM-yy", System.Globalization.CultureInfo.InvariantCulture,
+				System.Globalization.DateTimeStyles.None, out parsed))
+				return false;
+
+			root = parts[0];
+			expiry = parsed;
+			return true;
+		}
+
+		private static string FormatFuturesContract(string root, DateTime expiry)
+		{
+			return root + " " + expiry.ToString("MM-yy");
+		}
+
+		private static void AddUniqueInstrument(List<string> names, string fullName)
+		{
+			if (string.IsNullOrWhiteSpace(fullName))
+				return;
+			if (names.Any(n => string.Equals(n, fullName, StringComparison.OrdinalIgnoreCase)))
+				return;
+			names.Add(fullName);
+		}
+
+		private static string ResolveDefaultInstrumentName()
+		{
+			try
+			{
+				Instrument continuous = Instrument.GetInstrument("ES ##-##");
+				if (continuous != null && continuous.MasterInstrument != null)
+					return FormatFuturesContract("ES", continuous.MasterInstrument.GetNextExpiry(DateTime.Now));
+			}
+			catch
+			{
+				// Fall through to first available listed contract.
+			}
+
+			List<string> names = GetFuturesInstrumentNames();
+			if (names.Count > 0)
+				return names[0];
+			return string.Empty;
 		}
 
 		private void RefreshAccountSelector(ComboBox combo)
@@ -716,7 +859,9 @@ namespace NinjaTrader.NinjaScript.AddOns
 
 			string instrumentName = GetPanelInstrumentName();
 			if (string.IsNullOrWhiteSpace(instrumentName))
-				instrumentName = "ES 09-26";
+				instrumentName = ResolveDefaultInstrumentName();
+			if (string.IsNullOrWhiteSpace(instrumentName))
+				throw new InvalidOperationException("Instrument is required in the listener panel.");
 
 			int quantity = GetPanelQuantity();
 
